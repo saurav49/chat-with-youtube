@@ -1,0 +1,72 @@
+import { OpenAIEmbeddings } from '@langchain/openai';
+import { Request, Response } from 'express';
+import { config } from '../config/env';
+import { QdrantVectorStore } from '@langchain/qdrant';
+import { systemPrompt } from '../config/utils';
+
+import { ChatOpenAI } from '@langchain/openai';
+
+export async function llmResponse(_req: Request, res: Response) {
+  const { query } = _req.body;
+  if (!query || typeof query !== 'string') {
+    res.status(400).json({
+      status: 'ERROR',
+      message: 'query is required in request body',
+    });
+    return;
+  }
+  const embeddings = new OpenAIEmbeddings({
+    apiKey: config.OPENAI_API_KEY,
+    model: config.EMBEDDING_MODEL_NAME,
+  });
+  const vectorStore = await QdrantVectorStore.fromExistingCollection(
+    embeddings,
+    {
+      url: config.QDRANT_URL,
+      collectionName: 'yt-vid',
+    },
+  );
+  const k = 5;
+  const similaritySearch = await vectorStore.similaritySearchWithScore(
+    query,
+    k,
+  );
+  const MIN_SCORE = 0.0005;
+  const goodScore = similaritySearch.filter(
+    ([document, score]) => score > MIN_SCORE,
+  );
+  if (goodScore.length === 0) {
+    res.status(400).json({
+      status: 'ok',
+      data: null,
+      message: 'The query is out of scope for this video',
+    });
+    return;
+  }
+  const relevantChunks = goodScore
+    .map(
+      ([d, score]) =>
+        `ID: ${d.id}\nSCORE:${score}\nCONTENT:${d.pageContent}\nMETADATA:${JSON.stringify(d.metadata, null)}`,
+    )
+    .join('\n');
+  const messageForLLM = [
+    {
+      role: 'system',
+      content: systemPrompt(relevantChunks),
+    },
+    {
+      role: 'user',
+      content: query,
+    },
+  ];
+
+  const llm = new ChatOpenAI({
+    model: config.GPT_MODEL_NAME,
+    temperature: 0,
+  });
+  const llmResponse = await llm.invoke(messageForLLM);
+  res.status(200).json({
+    status: 'OK',
+    data: llmResponse.content,
+  });
+}
