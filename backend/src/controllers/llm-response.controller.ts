@@ -4,7 +4,8 @@ import { config } from '../config/env';
 import { QdrantVectorStore } from '@langchain/qdrant';
 import { systemPrompt } from '../config/utils';
 
-import { ChatOpenAI } from '@langchain/openai';
+import { generateText } from 'ai';
+import { openai } from '@ai-sdk/openai';
 
 export async function llmResponse(_req: Request, res: Response) {
   const { query } = _req.body;
@@ -31,7 +32,7 @@ export async function llmResponse(_req: Request, res: Response) {
     query,
     k,
   );
-  const MIN_SCORE = 0.5;
+  const MIN_SCORE = 0.75;
   const goodScore = similaritySearch.filter(
     ([document, score]) => score > MIN_SCORE,
   );
@@ -42,24 +43,16 @@ export async function llmResponse(_req: Request, res: Response) {
         `ID: ${d.id}\nSCORE:${score}\nCONTENT:${d.pageContent}\nMETADATA:${JSON.stringify(d.metadata, null)}`,
     )
     .join('\n');
-  const messageForLLM = [
-    {
-      role: 'system',
-      content: systemPrompt(relevantChunks, query),
-    },
-    {
-      role: 'user',
-      content: query,
-    },
-  ];
 
-  const llm = new ChatOpenAI({
-    model: config.GPT_MODEL_NAME,
-    temperature: 0,
+  const sys = systemPrompt(relevantChunks, query);
+
+  const { text } = await generateText({
+    model: openai(config.GPT_MODEL_NAME ?? ''),
+    prompt: `${sys}\n\nUser: ${query}`,
   });
-  const llmResponse = await llm.invoke(messageForLLM);
+
   res.status(200).json({
     status: 'OK',
-    data: llmResponse.content,
+    data: text,
   });
 }
