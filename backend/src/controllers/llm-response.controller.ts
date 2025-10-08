@@ -31,19 +31,12 @@ export async function llmResponse(_req: Request, res: Response) {
     query,
     k,
   );
-  const MIN_SCORE = 0.0005;
+  const MIN_SCORE = 0.5;
   const goodScore = similaritySearch.filter(
     ([document, score]) => score > MIN_SCORE,
   );
-  if (goodScore.length === 0) {
-    res.status(400).json({
-      status: 'ok',
-      data: null,
-      message: 'The query is out of scope for this video',
-    });
-    return;
-  }
-  const relevantChunks = goodScore
+  const finalChunks = goodScore.length > 0 ? goodScore : goodScore.slice(0, 3);
+  const relevantChunks = finalChunks
     .map(
       ([d, score]) =>
         `ID: ${d.id}\nSCORE:${score}\nCONTENT:${d.pageContent}\nMETADATA:${JSON.stringify(d.metadata, null)}`,
@@ -52,7 +45,7 @@ export async function llmResponse(_req: Request, res: Response) {
   const messageForLLM = [
     {
       role: 'system',
-      content: systemPrompt(relevantChunks),
+      content: systemPrompt(relevantChunks, query),
     },
     {
       role: 'user',
