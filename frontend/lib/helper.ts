@@ -14,5 +14,11 @@ function handleTimestampClick(seconds: number, videoUrl: string) {
   const url = `${videoUrl}&t=${seconds}`;
   window.open(url, "_blank");
 }
+function getYoutubeVideoId(url: string) {
+  if (!url) return null;
+  const videoUrl = new URL(url);
+  const videoId = videoUrl.searchParams.get("v");
+  return videoId;
+}
 
-export { resolveQuery, handleTimestampClick };
+export { resolveQuery, handleTimestampClick, getYoutubeVideoId };

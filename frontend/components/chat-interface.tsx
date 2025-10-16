@@ -21,7 +21,7 @@ const ChatInterface = ({
   useEffect(() => {
     if (chatRef?.current && cardContentRef?.current) {
       if (
-        lastKnownChat?.type === "assistant" &&
+        lastKnownChat?.role === "ASSISTANT" &&
         typeof lastKnownChat.content === "string" &&
         lastKnownChat.content.length > 0
       ) {
@@ -45,7 +45,7 @@ const ChatInterface = ({
                 ref={chatRef}
                 key={idx}
                 className={`w-full flex [&_div]:text-start ${
-                  cm.type === "user" ? "justify-end" : "justify-start"
+                  cm.role === "USER" ? "justify-end" : "justify-start"
                 }`}
                 style={
                   idx !== chatHistory.length ? { marginBottom: "16px" } : {}
@@ -53,7 +53,7 @@ const ChatInterface = ({
               >
                 <div
                   className={`[&_p]:text-[14px] [&_ul]:text-[14px] text-white rounded-lg ${
-                    cm.type === "user"
+                    cm.role === "USER"
                       ? "bg-red-500 !rounded-[16px_0px_16px_16px]"
                       : "bg-gray-600 !rounded-[0px_16px_16px_16px]"
                   } ${
@@ -61,18 +61,18 @@ const ChatInterface = ({
                       ? "rounded-full !py-[10px] !px-[12px] !w-[60px] h-[40px]"
                       : "max-w-2/3 !py-[10px] !px-[12px]"
                   } ${
-                    cm.type === "assistant" &&
+                    cm.role === "ASSISTANT" &&
                     typeof cm.content === "string" &&
                     cm.content.length === 0
                       ? "flex items-center gap-x-2"
                       : ""
                   }`}
                 >
-                  {cm.type === "user" ? (
+                  {cm.role === "USER" ? (
                     <p>{cm.content}</p>
                   ) : (
                     <>
-                      {cm.type === "assistant" &&
+                      {cm.role === "ASSISTANT" &&
                       typeof cm.content === "string" &&
                       cm.content.length === 0 ? (
                         <AnimatedTyping />

@@ -3,6 +3,9 @@ import React from "react";
 import { Input } from "./ui/input";
 import { Button } from "./ui/button";
 import { Send } from "lucide-react";
+import { useMutation } from "convex/react";
+import { api } from "../convex/_generated/api";
+import { OWNER_ID } from "@/lib/utils";
 
 type ChatFormType = {
   setChatMessage: React.Dispatch<React.SetStateAction<string>>;
@@ -13,6 +16,7 @@ type ChatFormType = {
     React.SetStateAction<ChatHistoryType[] | null>
   >;
   isLoading: boolean;
+  convID: string | undefined;
 };
 
 const ChatForm = ({
@@ -22,9 +26,12 @@ const ChatForm = ({
   chatHistory,
   setChatHistory,
   isLoading,
+  convID,
 }: ChatFormType) => {
+  const mutateMessage = useMutation(api.messages.createMessage);
   function handleOnSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    if (!convID) return;
     const query = chatMessage;
     setChatMessage("");
     setIsLoading(true);
@@ -37,29 +44,43 @@ const ChatForm = ({
         ? [
             ...prev,
             {
-              id: `${prev.length + 1}`,
-              type: `user`,
+              _id: `${prev.length + 1}`,
+              role: `USER`,
               content: query,
+              conversationId: convID,
+              senderId: OWNER_ID,
             },
             {
-              id: `${assistantId}`,
-              type: `assistant`,
+              _id: `${assistantId}`,
+              role: `ASSISTANT`,
               content: "",
+              conversationId: convID,
+              senderId: OWNER_ID,
             },
           ]
         : [
             {
-              id: `1`,
-              type: `user`,
+              _id: `1`,
+              role: `USER`,
               content: query,
+              conversationId: convID,
+              senderId: OWNER_ID,
             },
             {
-              id: `${assistantId}`,
-              type: `assistant`,
+              _id: `${assistantId}`,
+              role: `ASSISTANT`,
               content: "",
+              conversationId: convID,
+              senderId: OWNER_ID,
             },
           ]
     );
+    mutateMessage({
+      content: query,
+      role: `USER`,
+      conversationId: convID,
+      senderId: OWNER_ID,
+    });
     (async function () {
       try {
         const r = await resolveQuery(query);
@@ -67,18 +88,26 @@ const ChatForm = ({
           setChatHistory((prev) =>
             prev
               ? prev.map((p) =>
-                  p.id === `${assistantId}`
+                  p._id === `${assistantId}`
                     ? { ...p, content: r.data.data }
                     : { ...p }
                 )
               : [
                   {
-                    id: `1`,
-                    type: "assistant",
+                    _id: `1`,
+                    role: "ASSISTANT",
                     content: r.data.data,
+                    senderId: OWNER_ID,
+                    conversationId: convID,
                   },
                 ]
           );
+          mutateMessage({
+            content: r.data.data,
+            role: `ASSISTANT`,
+            conversationId: convID,
+            senderId: OWNER_ID,
+          });
         }
       } catch (e) {
         console.error(e);
@@ -105,7 +134,7 @@ const ChatForm = ({
       />
       <Button
         type="submit"
-        disabled={isLoading || chatMessage.length == 0}
+        disabled={isLoading || chatMessage.length == 0 || convID === undefined}
         className="bg-red-500 cursor-pointer hover:bg-red-400 rounded-lg flex items-center justify-center h-full w-20"
       >
         {isLoading ? (

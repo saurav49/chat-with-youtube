@@ -9,6 +9,10 @@ export default defineConfig({
       port: 5173,
     },
   },
+  manifest: {
+    permissions: ["storage", "tab"],
+    action: {},
+  },
   modules: ["@wxt-dev/module-react"],
   vite: () => ({
     plugins: [tailwindcss()],

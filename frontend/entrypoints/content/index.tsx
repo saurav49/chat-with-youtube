@@ -3,6 +3,10 @@ import ReactDOM from "react-dom/client";
 import React from "react";
 import "./global.css";
 
+import { ConvexProvider, ConvexReactClient } from "convex/react";
+
+const convex = new ConvexReactClient(import.meta.env.VITE_CONVEX_URL as string);
+
 export const PortalContext = React.createContext<HTMLElement | null>(null);
 
 const ContentRoot = () => {
@@ -14,12 +18,29 @@ const ContentRoot = () => {
     <React.StrictMode>
       <PortalContext.Provider value={portalContainer}>
         <div ref={setPortalContainer} id="chatyt-wxt">
-          <App />
+          <ConvexProvider client={convex}>
+            <App />
+          </ConvexProvider>
         </div>
       </PortalContext.Provider>
     </React.StrictMode>
   );
 };
+
+function sendURLToBackground(url: string) {
+  chrome.runtime.sendMessage({
+    type: "CHATYT_URL_UPDATE",
+    url,
+  });
+}
+
+function debounce<T extends (...args: any[]) => void>(fn: T, ms: number) {
+  let t: number | undefined;
+  return (...args: Parameters<T>) => {
+    if (t) clearTimeout(t);
+    t = window.setTimeout(() => fn(...args), ms);
+  };
+}
 
 export default defineContentScript({
   matches: ["<all_urls>"],
@@ -55,6 +76,47 @@ export default defineContentScript({
         root?.unmount();
       },
     });
+
+    (function setupURLWatcher() {
+      sendURLToBackground(window?.location?.href);
+
+      const d = debounce((url) => sendURLToBackground(url), 300);
+
+      const _push = history.pushState;
+      history.pushState = function (...args: any[]) {
+        const r = _push.apply(this, args as any);
+        d(window?.location?.href);
+        return r;
+      };
+
+      const _replace = history.replaceState;
+      history.replaceState = function (...args: any[]) {
+        const r = _replace.apply(this, args as any);
+        d(window?.location?.href);
+        return r;
+      };
+
+      window.addEventListener("yt-navigate-finish", () =>
+        d(window?.location?.href)
+      );
+
+      let lastKnownUrl = window?.location?.href;
+      const obs = new MutationObserver(() => {
+        debounce(() => {
+          const c = window?.location?.href;
+          if (lastKnownUrl !== c) {
+            lastKnownUrl = c;
+            d(c);
+          }
+        }, 300);
+      });
+      obs.observe(document.documentElement, {
+        childList: true,
+        subtree: true,
+      });
+    })();
+
+    // call on youtube specific event
 
     ui.mount();
   },

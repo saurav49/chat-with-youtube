@@ -28,6 +28,7 @@ declare global {
   const useReducer: typeof import('react')['useReducer']
   const useRef: typeof import('react')['useRef']
   const useState: typeof import('react')['useState']
+  const useStoredUrl: typeof import('C:/Users/biswa/Desktop/github/chat-with-yt/frontend/hooks/useStoredUrl')['default']
 }
 // for type re-export
 declare global {

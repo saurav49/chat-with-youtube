@@ -11,42 +11,50 @@ import { Youtube, CircleX } from "lucide-react";
 import ChatInterface from "./chat-interface";
 import ChatForm from "./chat-form";
 
+import { useQuery } from "convex/react";
+import { api } from "../convex/_generated/api";
+import { OWNER_ID } from "@/lib/utils";
+
 export type ChatHistoryType = {
-  id: string;
-  type: "user" | "assistant";
   content: string;
+  conversationId: string;
+  createdAt?: string;
+  role: "USER" | "ASSISTANT";
+  senderId: string;
+  _creationTime?: number;
+  _id?: string;
 };
 
 type ChatBoxProps = {
-  videoUrl: string;
   setIsOpenModal: React.Dispatch<React.SetStateAction<boolean>>;
+  url: string;
+  videoId: string | null;
 };
 
-const ChatBox = ({ videoUrl, setIsOpenModal }: ChatBoxProps) => {
+const ChatBox = ({ setIsOpenModal, url, videoId }: ChatBoxProps) => {
+  const conversations = useQuery(api.conversations.getConversation, {
+    ownerId: OWNER_ID,
+    videoId: videoId ?? ``,
+  });
+  const convID =
+    conversations && Array.isArray(conversations) && conversations.length > 0
+      ? conversations[0]._id
+      : undefined;
+  const messages = useQuery(api.messages.getMessages, {
+    conversationId: convID ?? ``,
+    senderId: OWNER_ID,
+  });
   const [chatHistory, setChatHistory] =
-    React.useState<Array<ChatHistoryType> | null>(
-      //   [
-      //   {
-      //     id: `1`,
-      //     type: `user`,
-      //     content: `how did maxine dupree won the match?`,
-      //   },
-      //   // {
-      //   //   id: `2`,
-      //   //   type: `assistant`,
-      //   //   content: "",
-      //   // },
-      //   {
-      //     id: `2`,
-      //     type: `assistant`,
-      //     content: `Maxine surprised the audience with her impressive performance in the match, showcasing unexpected sustained offense. Initially underestimated, she revitalized the crowd's excitement with back-to-back nearfalls and a key ankle lock. The atmosphere intensified as she executed a German suplex followed by a powerful kick, leading to a dramatic conclusion.\n\nHer primary strategy included applying pressure with grappling moves and capitalizing on her opponent's vulnerabilities. By maintaining a high energy level and leveraging crowd support, Maxine not only secured the victory but also became the highlight of the match.\n\n- Maxine delivered surprising sustained offense, leading to nearfalls. [03:44]\n- An ankle lock tactic further excited the crowd during the match. [03:50]\n- The intensity escalated with back-and-forth cradle attempts. [03:56]\n- A pivotal German suplex executed by Maxine showcased her skill. [04:02]\n- The match concluded with a powerful kick that secured her victory. [04:08]`,
-      //   },
-      // ]
-      null
-    );
+    React.useState<Array<ChatHistoryType> | null>(null);
   const [chatMessage, setChatMessage] = React.useState<string>("");
   const [isLoading, setIsLoading] = React.useState<boolean>(false);
   const cardContentRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    if (messages && Array.isArray(messages) && messages.length > 0) {
+      setChatHistory(messages);
+    }
+  }, [messages]);
+
   return (
     <Card
       className="bg-stone-800 shadow-md flex flex-col [&_div]:text-white gap-y-2 fixed bottom-28 right-5 w-[400px] h-[550px] z-[9999451]"
@@ -89,7 +97,7 @@ const ChatBox = ({ videoUrl, setIsOpenModal }: ChatBoxProps) => {
       </CardHeader>
       <CardContent
         ref={cardContentRef}
-        className="flex h-full flex-col overflow-y-auto border border-yellow-500"
+        className="flex h-full flex-col overflow-y-auto"
         style={{
           scrollbarWidth: "none",
           msOverflowStyle: "none",
@@ -98,7 +106,7 @@ const ChatBox = ({ videoUrl, setIsOpenModal }: ChatBoxProps) => {
       >
         <ChatInterface
           chatHistory={chatHistory}
-          videoUrl={videoUrl}
+          videoUrl={url}
           cardContentRef={cardContentRef}
         />
       </CardContent>
@@ -110,6 +118,7 @@ const ChatBox = ({ videoUrl, setIsOpenModal }: ChatBoxProps) => {
           chatHistory={chatHistory}
           setChatHistory={setChatHistory}
           isLoading={isLoading}
+          convID={convID}
         />
       </CardFooter>
     </Card>
