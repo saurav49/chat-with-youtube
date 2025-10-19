@@ -115,7 +115,6 @@ const ChatBox = ({ setIsOpenModal, url, videoId }: ChatBoxProps) => {
           setChatMessage={setChatMessage}
           setIsLoading={setIsLoading}
           chatMessage={chatMessage}
-          chatHistory={chatHistory}
           setChatHistory={setChatHistory}
           isLoading={isLoading}
           convID={convID}

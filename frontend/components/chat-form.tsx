@@ -5,13 +5,12 @@ import { Button } from "./ui/button";
 import { Send } from "lucide-react";
 import { useMutation } from "convex/react";
 import { api } from "../convex/_generated/api";
-import { OWNER_ID } from "@/lib/utils";
+import { OWNER_ID, roles } from "@/lib/utils";
 
 type ChatFormType = {
   setChatMessage: React.Dispatch<React.SetStateAction<string>>;
   setIsLoading: React.Dispatch<React.SetStateAction<boolean>>;
   chatMessage: string;
-  chatHistory: ChatHistoryType[] | null;
   setChatHistory: React.Dispatch<
     React.SetStateAction<ChatHistoryType[] | null>
   >;
@@ -23,7 +22,6 @@ const ChatForm = ({
   setChatMessage,
   setIsLoading,
   chatMessage,
-  chatHistory,
   setChatHistory,
   isLoading,
   convID,
@@ -35,24 +33,22 @@ const ChatForm = ({
     const query = chatMessage;
     setChatMessage("");
     setIsLoading(true);
-    const assistantId =
-      chatHistory && Array.isArray(chatHistory) && chatHistory.length > 0
-        ? chatHistory.length + 2
-        : 2;
+    const assistantId = `assistant-temp-${Date.now()}`;
+    const userId = `user-temp-${Date.now()}`;
     setChatHistory((prev) =>
       prev
         ? [
             ...prev,
             {
-              _id: `${prev.length + 1}`,
-              role: `USER`,
+              _id: userId,
+              role: roles.USER,
               content: query,
               conversationId: convID,
               senderId: OWNER_ID,
             },
             {
               _id: `${assistantId}`,
-              role: `ASSISTANT`,
+              role: roles.ASSISTANT,
               content: "",
               conversationId: convID,
               senderId: OWNER_ID,
@@ -60,24 +56,24 @@ const ChatForm = ({
           ]
         : [
             {
-              _id: `1`,
-              role: `USER`,
+              _id: userId,
+              role: roles.USER,
               content: query,
               conversationId: convID,
               senderId: OWNER_ID,
             },
             {
-              _id: `${assistantId}`,
-              role: `ASSISTANT`,
+              _id: assistantId,
+              role: roles.ASSISTANT,
               content: "",
               conversationId: convID,
               senderId: OWNER_ID,
             },
-          ]
+          ],
     );
     mutateMessage({
       content: query,
-      role: `USER`,
+      role: roles.USER,
       conversationId: convID,
       senderId: OWNER_ID,
     });
@@ -90,21 +86,21 @@ const ChatForm = ({
               ? prev.map((p) =>
                   p._id === `${assistantId}`
                     ? { ...p, content: r.data.data }
-                    : { ...p }
+                    : { ...p },
                 )
               : [
                   {
-                    _id: `1`,
-                    role: "ASSISTANT",
+                    _id: assistantId,
+                    role: roles.ASSISTANT,
                     content: r.data.data,
                     senderId: OWNER_ID,
                     conversationId: convID,
                   },
-                ]
+                ],
           );
           mutateMessage({
             content: r.data.data,
-            role: `ASSISTANT`,
+            role: roles.ASSISTANT,
             conversationId: convID,
             senderId: OWNER_ID,
           });

@@ -21,14 +21,19 @@ const ChatInterface = ({
   useEffect(() => {
     if (chatRef?.current && cardContentRef?.current) {
       if (
-        lastKnownChat?.role === "ASSISTANT" &&
+        lastKnownChat &&
         typeof lastKnownChat.content === "string" &&
         lastKnownChat.content.length > 0
       ) {
-        cardContentRef.current.scrollTo({
-          top: chatRef.current.scrollHeight,
-          behavior: "smooth",
-        });
+        try {
+          chatRef.current.scrollIntoView({
+            behavior: "smooth",
+            block: "end",
+          });
+        } catch {
+          cardContentRef.current.scrollTop =
+            cardContentRef.current.scrollHeight;
+        }
       }
     }
   }, [lastKnownChat]);
@@ -40,16 +45,15 @@ const ChatInterface = ({
               /\[(\d{1,2}:\d{2})\]/g,
               "[$1](ts:$1)"
             );
+            const isLast = idx === chatHistory.length - 1;
             return (
               <div
-                ref={chatRef}
+                ref={isLast ? chatRef : undefined}
                 key={idx}
                 className={`w-full flex [&_div]:text-start ${
                   cm.role === "USER" ? "justify-end" : "justify-start"
                 }`}
-                style={
-                  idx !== chatHistory.length ? { marginBottom: "16px" } : {}
-                }
+                style={!isLast ? { marginBottom: "16px" } : {}}
               >
                 <div
                   className={`[&_p]:text-[14px] [&_ul]:text-[14px] text-white rounded-lg ${

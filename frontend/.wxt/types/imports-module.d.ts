@@ -22,5 +22,7 @@ declare module '#imports' {
   export { default as chatBox, ChatHistoryType } from '../components/chat-box';
   export { default as chatForm } from '../components/chat-form';
   export { default as chatInterface } from '../components/chat-interface';
+  export { default as modalConfig } from '../components/modal-config';
+  export { default as useChromeStorage } from '../hooks/useChromeStorage';
   export { default as useStoredUrl } from '../hooks/useStoredUrl';
 }
