@@ -19,10 +19,13 @@ declare module '#imports' {
   export { useState, useCallback, useMemo, useEffect, useRef, useContext, useReducer } from 'react';
   export { fakeBrowser } from 'wxt/testing';
   export { AnimatedTyping } from '../components/animate-typing';
+  export { default as chatBoxWrapper } from '../components/chat-box-wrapper';
   export { default as chatBox, ChatHistoryType } from '../components/chat-box';
   export { default as chatForm } from '../components/chat-form';
   export { default as chatInterface } from '../components/chat-interface';
+  export { default as loadingComponent } from '../components/loading-component';
   export { default as modalConfig } from '../components/modal-config';
+  export { default as successComponent } from '../components/success-component';
   export { default as useChromeStorage } from '../hooks/useChromeStorage';
   export { default as useStoredUrl } from '../hooks/useStoredUrl';
 }

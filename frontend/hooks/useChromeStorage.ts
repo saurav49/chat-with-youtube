@@ -1,22 +1,16 @@
 const useChromeStorage = () => {
   return {
-    getKeyModel: async (model: string) => {
-      const result = await chrome.storage.local.get(model);
-      console.log({ result });
+    getKeyModel: async () => {
+      const { model } = await chrome.storage.local.get("model");
+      const { key } = await chrome.storage.local.get("key");
       return {
-        model: model,
-        apiKey: result[model],
+        model,
+        key,
       };
     },
-    setKeyModel: async ({
-      apiKey,
-      model,
-    }: {
-      apiKey: string;
-      model: string;
-    }) => {
+    setKeyModel: async (apiKey: string) => {
       chrome?.storage?.local.set({
-        [model]: apiKey,
+        ["key"]: apiKey,
       });
     },
     getModel: async () => {

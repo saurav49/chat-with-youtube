@@ -8,7 +8,18 @@ import { generateText } from 'ai';
 import { openai } from '@ai-sdk/openai';
 
 export async function llmResponse(_req: Request, res: Response) {
-  const { query } = _req.body;
+  const { query, videoId } = _req.body;
+  const headerAuth = _req.get('Authorization');
+  const fromBearer = headerAuth?.toLocaleLowerCase().startsWith('bearer ')
+    ? headerAuth.slice(7).trim()
+    : undefined;
+  if (!fromBearer) {
+    res.status(401).json({
+      status: 'ERROR',
+      message: 'Unauthorized',
+    });
+    return;
+  }
   if (!query || typeof query !== 'string') {
     res.status(400).json({
       status: 'ERROR',
@@ -16,15 +27,22 @@ export async function llmResponse(_req: Request, res: Response) {
     });
     return;
   }
+  if (!videoId || typeof query !== 'string') {
+    res.status(400).json({
+      status: 'ERROR',
+      message: 'videoId is required in request body',
+    });
+    return;
+  }
   const embeddings = new OpenAIEmbeddings({
-    apiKey: config.OPENAI_API_KEY,
+    apiKey: fromBearer ?? config.OPENAI_API_KEY,
     model: config.EMBEDDING_MODEL_NAME,
   });
   const vectorStore = await QdrantVectorStore.fromExistingCollection(
     embeddings,
     {
       url: config.QDRANT_URL,
-      collectionName: 'yt-vid',
+      collectionName: videoId,
     },
   );
   const k = 5;
@@ -43,7 +61,6 @@ export async function llmResponse(_req: Request, res: Response) {
         `ID: ${d.id}\nSCORE:${score}\nCONTENT:${d.pageContent}\nMETADATA:${JSON.stringify(d.metadata, null)}`,
     )
     .join('\n');
-
   const sys = systemPrompt(relevantChunks, query);
 
   const { text } = await generateText({

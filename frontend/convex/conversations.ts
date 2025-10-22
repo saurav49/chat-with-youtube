@@ -10,10 +10,10 @@ export const createConversation = mutation({
     const conv = await ctx.db
       .query("conversations")
       .withIndex("by_owner_video", (e) =>
-        e.eq("ownerId", ownerId).eq("videoId", videoId)
+        e.eq("ownerId", ownerId).eq("videoId", videoId),
       )
       .collect();
-    if (conv.length > 0) return conv[0];
+    if (conv.length > 0) return conv;
     return await ctx.db.insert("conversations", {
       ownerId,
       videoId,
@@ -31,7 +31,7 @@ export const getConversation = query({
     const conversation = await ctx.db
       .query("conversations")
       .withIndex("by_owner_video", (q) =>
-        q.eq("ownerId", args.ownerId).eq("videoId", args.videoId)
+        q.eq("ownerId", args.ownerId).eq("videoId", args.videoId),
       )
       .collect();
     return conversation;

@@ -5,11 +5,29 @@ import { config } from '../config/env';
 import { fetchTranscript } from 'youtube-transcript-plus';
 
 export async function transcribeVideo(_req: Request, res: Response) {
-  const { url } = _req.body;
+  const { url, videoId } = _req.body;
+  const headerAuth = _req.get('Authorization');
+  const fromBearer = headerAuth?.toLocaleLowerCase().startsWith('bearer ')
+    ? headerAuth.slice(7).trim()
+    : undefined;
+  if (!fromBearer) {
+    res.status(401).json({
+      status: 'ERROR',
+      message: 'Unauthorized',
+    });
+    return;
+  }
   if (!url || typeof url !== 'string') {
     res.status(400).json({
       status: 'ERROR',
       message: 'Valid url is required',
+    });
+    return;
+  }
+  if (!videoId || typeof videoId !== 'string') {
+    res.status(400).json({
+      status: 'ERROR',
+      message: 'Valid videoId is required',
     });
     return;
   }
@@ -74,14 +92,14 @@ export async function transcribeVideo(_req: Request, res: Response) {
   }));
 
   const embeddings = new OpenAIEmbeddings({
-    apiKey: config.OPENAI_API_KEY,
+    apiKey: fromBearer ?? config.OPENAI_API_KEY,
     model: config.EMBEDDING_MODEL_NAME,
   });
   const vectorStore = await QdrantVectorStore.fromExistingCollection(
     embeddings,
     {
       url: process.env.QDRANT_URL,
-      collectionName: 'yt-vid',
+      collectionName: videoId,
     },
   );
   await vectorStore.addDocuments(docsWithMetadata);

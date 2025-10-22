@@ -1,4 +1,4 @@
-import { resolveQuery } from "@/lib/helper";
+import { askLlmInBackground } from "@/lib/helper";
 import React from "react";
 import { Input } from "./ui/input";
 import { Button } from "./ui/button";
@@ -16,6 +16,7 @@ type ChatFormType = {
   >;
   isLoading: boolean;
   convID: string | undefined;
+  videoId: string;
 };
 
 const ChatForm = ({
@@ -25,6 +26,7 @@ const ChatForm = ({
   setChatHistory,
   isLoading,
   convID,
+  videoId,
 }: ChatFormType) => {
   const mutateMessage = useMutation(api.messages.createMessage);
   function handleOnSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -79,8 +81,8 @@ const ChatForm = ({
     });
     (async function () {
       try {
-        const r = await resolveQuery(query);
-        if (r && r.status === 200) {
+        const r = await askLlmInBackground(query, videoId);
+        if (r && r?.ok) {
           setChatHistory((prev) =>
             prev
               ? prev.map((p) =>
@@ -105,10 +107,9 @@ const ChatForm = ({
             senderId: OWNER_ID,
           });
         }
+        setIsLoading(false);
       } catch (e) {
         console.error(e);
-      } finally {
-        setIsLoading(false);
       }
     })();
   }

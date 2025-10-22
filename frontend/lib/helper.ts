@@ -12,7 +12,8 @@ async function resolveQuery(query: string) {
 }
 function handleTimestampClick(seconds: number, videoUrl: string) {
   const url = `${videoUrl}&t=${seconds}`;
-  window.open(url, "_blank");
+  window.location.assign(url);
+  // window.open(url, "_blank");
 }
 function getYoutubeVideoId(url: string) {
   if (!url) return null;
@@ -20,5 +21,44 @@ function getYoutubeVideoId(url: string) {
   const videoId = videoUrl.searchParams.get("v");
   return videoId;
 }
+function askLlmInBackground(
+  query: string,
+  videoId: string,
+): Promise<{
+  ok: boolean;
+  data: { status: string; data: string };
+}> {
+  return new Promise((resolve) => {
+    chrome.runtime.sendMessage(
+      {
+        type: "LLM_QUERY",
+        payload: {
+          query,
+          videoId,
+        },
+      },
+      (res) => {
+        if (chrome.runtime.lastError) {
+          resolve({
+            ok: false,
+            // @ts-expect-error
+            error: (chrome.runtime.lastError.message as string) ?? `llm error`,
+          });
+        } else {
+          resolve(
+            res ?? {
+              ok: true,
+            },
+          );
+        }
+      },
+    );
+  });
+}
 
-export { resolveQuery, handleTimestampClick, getYoutubeVideoId };
+export {
+  resolveQuery,
+  handleTimestampClick,
+  getYoutubeVideoId,
+  askLlmInBackground,
+};

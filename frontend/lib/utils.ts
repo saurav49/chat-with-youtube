@@ -30,4 +30,23 @@ const VALID_MODELS: Record<
 
 type ValidModelTypes = "gpt-4o-mini" | "gemini_1.5_pro";
 
-export { cn, OWNER_ID, roles, VALID_MODELS, ValidModelTypes };
+const exampleMessages = [
+  {
+    heading: "What is the video about?",
+    message: "Can you tell me about the video?",
+  },
+  {
+    heading: "What are the key points?",
+    message: "What are the key points of the video?",
+  },
+  {
+    heading: "What are the main takeaways?",
+    message: "What are the main takeaways of the video?",
+  },
+  {
+    heading: "What are the main topics?",
+    message: "What are the main topics discussed in the video?",
+  },
+];
+
+export { cn, OWNER_ID, roles, VALID_MODELS, ValidModelTypes, exampleMessages };

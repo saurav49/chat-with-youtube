@@ -2,7 +2,6 @@ import App from "./App";
 import ReactDOM from "react-dom/client";
 import React from "react";
 import "./global.css";
-
 import { ConvexProvider, ConvexReactClient } from "convex/react";
 
 const convex = new ConvexReactClient(import.meta.env.VITE_CONVEX_URL as string);
@@ -11,7 +10,7 @@ export const PortalContext = React.createContext<HTMLElement | null>(null);
 
 const ContentRoot = () => {
   const [portalContainer, setPortalContainer] = useState<HTMLElement | null>(
-    null
+    null,
   );
 
   return (
@@ -43,7 +42,11 @@ function debounce<T extends (...args: any[]) => void>(fn: T, ms: number) {
 }
 
 export default defineContentScript({
-  matches: ["<all_urls>"],
+  matches: [
+    "https://www.youtube.com/watch*",
+    "https://m.youtube.com/watch*",
+    "https://youtube.com/watch*",
+  ],
   cssInjectionMode: "ui",
 
   async main(ctx) {
@@ -97,26 +100,30 @@ export default defineContentScript({
       };
 
       window.addEventListener("yt-navigate-finish", () =>
-        d(window?.location?.href)
+        d(window?.location?.href),
       );
 
-      let lastKnownUrl = window?.location?.href;
-      const obs = new MutationObserver(() => {
-        debounce(() => {
-          const c = window?.location?.href;
-          if (lastKnownUrl !== c) {
-            lastKnownUrl = c;
-            d(c);
-          }
-        }, 300);
+      document.addEventListener("visibilitychange", () => {
+        if (document.visibilityState === "visible") {
+          d(window.location.href);
+        }
       });
+      window.addEventListener("focus", () => d(window.location.href));
+
+      let lastKnownUrl = window.location.href;
+      const obs = new MutationObserver(() => {
+        const c = window.location.href;
+        if (lastKnownUrl !== c) {
+          lastKnownUrl = c;
+          d(c);
+        }
+      });
+
       obs.observe(document.documentElement, {
         childList: true,
         subtree: true,
       });
     })();
-
-    // call on youtube specific event
 
     ui.mount();
   },

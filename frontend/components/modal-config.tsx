@@ -9,28 +9,50 @@ import {
   Sparkles,
 } from "lucide-react";
 import { VALID_MODELS } from "@/lib/utils";
-import useChromeStorage from "@/hooks/useChromeStorage";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
+import { toast } from "sonner";
+import { ModalConfigType } from "@/entrypoints/popup/App";
 
-const ModalConfig = () => {
+const ModalConfig = ({
+  setIsOpenModalConfig,
+}: {
+  setIsOpenModalConfig: React.Dispatch<React.SetStateAction<ModalConfigType>>;
+}) => {
   const selectRef = React.useRef<HTMLSelectElement | null>(null);
   const [isShowValue, setIsShowValue] = React.useState<boolean>(false);
   const [selectedModel, setSelectedModel] = React.useState<string>("");
   const [apiKey, setApiKey] = React.useState<string>("");
-  const { setModel, setKeyModel } = useChromeStorage();
+  const [isLoading, setIsLoading] = React.useState<boolean>(false);
   async function handleFormSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    setModel(selectedModel);
-    setKeyModel({
-      apiKey,
-      model: selectedModel,
-    });
-    setSelectedModel("");
-    setApiKey("");
+    setIsLoading(true);
+    chrome.runtime.sendMessage(
+      {
+        type: "SAVE_API_KEYS",
+        payload: {
+          model: selectedModel,
+          apiKey,
+        },
+      },
+      (res) => {
+        if (res && res.ok) {
+          toast.success("API keys saved successfully!");
+          setIsOpenModalConfig((prev) => ({
+            ...prev,
+            isOpenConfig: false,
+            isOpenLoading: true,
+            isOpenSuccess: false,
+          }));
+        }
+        setSelectedModel("");
+        setApiKey("");
+        setIsLoading(false);
+      },
+    );
   }
   return (
-    <Card className="flex flex-col items-center bg-slate-950 !gap-y-1 !py-10 !px-5 border-none">
+    <Card className="flex h-[600px] flex-col items-center bg-slate-950 !gap-y-1 !py-10 !px-5 border-none">
       <h2 className="text-white text-lg font-semibold">ChatYT</h2>
       <p className="text-sm font-medium text-slate-300">
         Ask questions about the current YouTube video
@@ -102,17 +124,16 @@ const ModalConfig = () => {
           <div className="relative">
             <Input
               name="api-key"
-              className="!mt-3 text-white placeholder:text-sm placeholder:!text-white !px-3"
+              className="!mt-3 text-white placeholder:text-sm placeholder:!text-white !pl-3 !pr-14 "
               placeholder="Enter your API key"
               value={apiKey}
               type={isShowValue ? "text" : "password"}
               onChange={(e) => setApiKey(e.target.value)}
             />
             <div
-              className="absolute cursor-pointer rounded-full top-5 right-6 [_&]:text-white hover:[_&]:text-white"
+              className="absolute cursor-pointer rounded-full top-[21px] right-6 [_&]:text-white hover:[_&]:text-white"
               onClick={() => setIsShowValue((prev) => !prev)}
               style={{
-                background: "none",
                 border: "none",
               }}
             >
@@ -129,8 +150,26 @@ const ModalConfig = () => {
           className="!mt-8 !mb-3 !py-5 w-full"
           disabled={!apiKey || !selectedModel}
         >
-          <Sparkles />
-          Set API Key
+          <>
+            {isLoading ? (
+              <>
+                <div
+                  style={{
+                    width: 18,
+                    height: 18,
+                    borderRadius: "50%",
+                    border: "2px solid rgba(255,255,255,0.25)",
+                    borderTopColor: "#fff",
+                    animation: "spin 0.8s linear infinite",
+                  }}
+                />
+                <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
+              </>
+            ) : (
+              <Sparkles />
+            )}
+          </>
+          <>{isLoading ? "Processing..." : "Set API Key"}</>
         </Button>
       </form>
     </Card>

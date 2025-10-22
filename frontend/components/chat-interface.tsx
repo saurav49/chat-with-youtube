@@ -1,6 +1,7 @@
 import { handleTimestampClick } from "@/lib/helper";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { roles } from "@/lib/utils";
 
 type ChatInterfaceType = {
   chatHistory: ChatHistoryType[] | null;
@@ -37,13 +38,14 @@ const ChatInterface = ({
       }
     }
   }, [lastKnownChat]);
+  console.log({ chatHistory });
   return (
     <>
       {chatHistory && Array.isArray(chatHistory) && chatHistory.length > 0
         ? chatHistory.map((cm, idx) => {
             const preprocessed = cm.content.replace(
               /\[(\d{1,2}:\d{2})\]/g,
-              "[$1](ts:$1)"
+              "[$1](ts:$1)",
             );
             const isLast = idx === chatHistory.length - 1;
             return (
@@ -65,18 +67,18 @@ const ChatInterface = ({
                       ? "rounded-full !py-[10px] !px-[12px] !w-[60px] h-[40px]"
                       : "max-w-2/3 !py-[10px] !px-[12px]"
                   } ${
-                    cm.role === "ASSISTANT" &&
+                    cm.role === roles.ASSISTANT &&
                     typeof cm.content === "string" &&
                     cm.content.length === 0
                       ? "flex items-center gap-x-2"
                       : ""
                   }`}
                 >
-                  {cm.role === "USER" ? (
+                  {cm.role === roles.USER ? (
                     <p>{cm.content}</p>
                   ) : (
                     <>
-                      {cm.role === "ASSISTANT" &&
+                      {cm.role === roles.ASSISTANT &&
                       typeof cm.content === "string" &&
                       cm.content.length === 0 ? (
                         <AnimatedTyping />

@@ -30,7 +30,7 @@ export const getMessages = query({
       .withIndex("by_sender_conversation", (q) =>
         q
           .eq("conversationId", args.conversationId)
-          .eq("senderId", args.senderId)
+          .eq("senderId", args.senderId),
       )
       .collect();
     return messages;

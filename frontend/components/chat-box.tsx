@@ -7,13 +7,14 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Youtube, CircleX } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Youtube, CircleX, ArrowRightIcon } from "lucide-react";
 import ChatInterface from "./chat-interface";
 import ChatForm from "./chat-form";
-
-import { useQuery } from "convex/react";
-import { api } from "../convex/_generated/api";
-import { OWNER_ID } from "@/lib/utils";
+import { OWNER_ID, roles, exampleMessages } from "@/lib/utils";
+import { useMutation } from "convex/react";
+import { api } from "@/convex/_generated/api";
+import { askLlmInBackground } from "@/lib/helper";
 
 export type ChatHistoryType = {
   content: string;
@@ -29,31 +30,25 @@ type ChatBoxProps = {
   setIsOpenModal: React.Dispatch<React.SetStateAction<boolean>>;
   url: string;
   videoId: string | null;
+  chatHistory: Array<ChatHistoryType> | null;
+  setChatHistory: React.Dispatch<
+    React.SetStateAction<Array<ChatHistoryType> | null>
+  >;
+  convID: string | undefined;
 };
 
-const ChatBox = ({ setIsOpenModal, url, videoId }: ChatBoxProps) => {
-  const conversations = useQuery(api.conversations.getConversation, {
-    ownerId: OWNER_ID,
-    videoId: videoId ?? ``,
-  });
-  const convID =
-    conversations && Array.isArray(conversations) && conversations.length > 0
-      ? conversations[0]._id
-      : undefined;
-  const messages = useQuery(api.messages.getMessages, {
-    conversationId: convID ?? ``,
-    senderId: OWNER_ID,
-  });
-  const [chatHistory, setChatHistory] =
-    React.useState<Array<ChatHistoryType> | null>(null);
+const ChatBox = ({
+  setIsOpenModal,
+  url,
+  videoId,
+  chatHistory,
+  setChatHistory,
+  convID,
+}: ChatBoxProps) => {
   const [chatMessage, setChatMessage] = React.useState<string>("");
   const [isLoading, setIsLoading] = React.useState<boolean>(false);
   const cardContentRef = useRef<HTMLDivElement | null>(null);
-  useEffect(() => {
-    if (messages && Array.isArray(messages) && messages.length > 0) {
-      setChatHistory(messages);
-    }
-  }, [messages]);
+  const mutateMessage = useMutation(api.messages.createMessage);
 
   return (
     <Card
@@ -95,6 +90,106 @@ const ChatBox = ({ setIsOpenModal, url, videoId }: ChatBoxProps) => {
           <CircleX size="18" />
         </button>
       </CardHeader>
+      <div className="grid grid-cols-2 grid-rows-2 items-start !space-y-2 !gap-x-3 justify-start !mt-5">
+        {exampleMessages.map((message, index) => (
+          <Button
+            key={index}
+            onClick={(e) => {
+              e.preventDefault();
+              if (!convID) return;
+              if (!videoId) return;
+              const query = message.message;
+              setIsLoading(true);
+              const assistantId = `assistant-temp-${Date.now()}`;
+              const userId = `user-temp-${Date.now()}`;
+              setChatHistory((prev) =>
+                prev
+                  ? [
+                      ...prev,
+                      {
+                        _id: userId,
+                        role: roles.USER,
+                        content: query,
+                        conversationId: convID,
+                        senderId: OWNER_ID,
+                      },
+                      {
+                        _id: `${assistantId}`,
+                        role: roles.ASSISTANT,
+                        content: "",
+                        conversationId: convID,
+                        senderId: OWNER_ID,
+                      },
+                    ]
+                  : [
+                      {
+                        _id: userId,
+                        role: roles.USER,
+                        content: query,
+                        conversationId: convID,
+                        senderId: OWNER_ID,
+                      },
+                      {
+                        _id: assistantId,
+                        role: roles.ASSISTANT,
+                        content: "",
+                        conversationId: convID,
+                        senderId: OWNER_ID,
+                      },
+                    ],
+              );
+              mutateMessage({
+                content: query,
+                role: roles.USER,
+                conversationId: convID,
+                senderId: OWNER_ID,
+              });
+              (async function () {
+                try {
+                  const r = await askLlmInBackground(query, videoId);
+                  if (r && r?.ok) {
+                    setChatHistory((prev) =>
+                      prev
+                        ? prev.map((p) =>
+                            p._id === `${assistantId}`
+                              ? { ...p, content: r.data.data }
+                              : { ...p },
+                          )
+                        : [
+                            {
+                              _id: assistantId,
+                              role: roles.ASSISTANT,
+                              content: r.data.data,
+                              senderId: OWNER_ID,
+                              conversationId: convID,
+                            },
+                          ],
+                    );
+                    mutateMessage({
+                      content: r.data.data,
+                      role: roles.ASSISTANT,
+                      conversationId: convID,
+                      senderId: OWNER_ID,
+                    });
+                  }
+                  setIsLoading(false);
+                } catch (e) {
+                  console.error(e);
+                }
+              })();
+            }}
+            className="h-[45px] cursor-pointer w-full justify-start dark:bg-transparent border-[0.5px] !p-3 opacity-80 flex items-start whitespace-normal break-words text-left"
+          >
+            <ArrowRightIcon
+              stroke="#fff"
+              className="!mr-2 text-muted-foreground size-6 shrink-0"
+            />
+            <span className="!text-lg whitespace-normal break-words">
+              {message.heading}
+            </span>
+          </Button>
+        ))}
+      </div>
       <CardContent
         ref={cardContentRef}
         className="flex h-full flex-col overflow-y-auto"
@@ -111,14 +206,17 @@ const ChatBox = ({ setIsOpenModal, url, videoId }: ChatBoxProps) => {
         />
       </CardContent>
       <CardFooter className="w-full p-0">
-        <ChatForm
-          setChatMessage={setChatMessage}
-          setIsLoading={setIsLoading}
-          chatMessage={chatMessage}
-          setChatHistory={setChatHistory}
-          isLoading={isLoading}
-          convID={convID}
-        />
+        {videoId && (
+          <ChatForm
+            setChatMessage={setChatMessage}
+            setIsLoading={setIsLoading}
+            chatMessage={chatMessage}
+            setChatHistory={setChatHistory}
+            isLoading={isLoading}
+            convID={convID}
+            videoId={videoId}
+          />
+        )}
       </CardFooter>
     </Card>
   );
