@@ -73,16 +73,16 @@ const ChatForm = ({
             },
           ],
     );
-    mutateMessage({
-      content: query,
-      role: roles.USER,
-      conversationId: convID,
-      senderId: OWNER_ID,
-    });
     (async function () {
       try {
         const r = await askLlmInBackground(query, videoId);
         if (r && r?.ok) {
+          mutateMessage({
+            content: query,
+            role: roles.USER,
+            conversationId: convID,
+            senderId: OWNER_ID,
+          });
           setChatHistory((prev) =>
             prev
               ? prev.map((p) =>
