@@ -21,11 +21,7 @@ const ChatInterface = ({
       : null;
   useEffect(() => {
     if (chatRef?.current && cardContentRef?.current) {
-      if (
-        lastKnownChat &&
-        typeof lastKnownChat.content === "string" &&
-        lastKnownChat.content.length > 0
-      ) {
+      if (lastKnownChat) {
         try {
           chatRef.current.scrollIntoView({
             behavior: "smooth",
@@ -38,7 +34,6 @@ const ChatInterface = ({
       }
     }
   }, [lastKnownChat]);
-  console.log({ chatHistory });
   return (
     <>
       {chatHistory && Array.isArray(chatHistory) && chatHistory.length > 0

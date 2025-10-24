@@ -1,4 +1,8 @@
+import { Id } from "@/convex/_generated/dataModel";
 import axios from "axios";
+import { ReactMutation } from "convex/react";
+import { FunctionReference } from "convex/server";
+import { OWNER_ID } from "./utils";
 
 async function resolveQuery(query: string) {
   try {
@@ -11,9 +15,12 @@ async function resolveQuery(query: string) {
   }
 }
 function handleTimestampClick(seconds: number, videoUrl: string) {
-  const url = `${videoUrl}&t=${seconds}`;
+  const url = new URL(videoUrl);
+  if (seconds && seconds > 0) {
+    url.searchParams.delete("t");
+    url.searchParams.append("t", seconds.toString());
+  }
   window.location.assign(url);
-  // window.open(url, "_blank");
 }
 function getYoutubeVideoId(url: string) {
   if (!url) return null;
@@ -24,6 +31,7 @@ function getYoutubeVideoId(url: string) {
 function askLlmInBackground(
   query: string,
   videoId: string,
+  url: string,
 ): Promise<{
   ok: boolean;
   data: { status: string; data: string };
@@ -35,6 +43,7 @@ function askLlmInBackground(
         payload: {
           query,
           videoId,
+          url,
         },
       },
       (res) => {
@@ -55,10 +64,56 @@ function askLlmInBackground(
     );
   });
 }
-
+function debounce<T extends (...args: any[]) => void>(fn: T, ms: number) {
+  let t: number | undefined;
+  return (...args: Parameters<T>) => {
+    if (t) clearTimeout(t);
+    t = window.setTimeout(() => fn(...args), ms);
+  };
+}
+async function fetchConversation({
+  setConvId,
+  convMutate,
+  videoId,
+}: {
+  setConvId: React.Dispatch<React.SetStateAction<string | undefined>>;
+  convMutate: ReactMutation<
+    FunctionReference<
+      "mutation",
+      "public",
+      {
+        videoId: string;
+        ownerId: string;
+      },
+      | Id<"conversations">
+      | {
+          _id: Id<"conversations">;
+          _creationTime: number;
+          videoId: string;
+          ownerId: string;
+          createdAt: string;
+        }[],
+      string | undefined
+    >
+  >;
+  videoId: string;
+}) {
+  const conversations = await convMutate({
+    ownerId: OWNER_ID,
+    videoId: videoId,
+  });
+  const convID =
+    conversations && Array.isArray(conversations) && conversations.length > 0
+      ? conversations[0]._id
+      : undefined;
+  setConvId(convID);
+  return convID;
+}
 export {
+  fetchConversation,
   resolveQuery,
   handleTimestampClick,
   getYoutubeVideoId,
   askLlmInBackground,
+  debounce,
 };

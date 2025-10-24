@@ -39,7 +39,6 @@ const LoadingComponent = ({
         ok: boolean;
       }>;
       r.then((res) => {
-        console.log({ res });
         if (res && res?.ok) {
           toast.success("Video Transcribed Successfully");
           setIsOpenModalConfig((prev) => ({

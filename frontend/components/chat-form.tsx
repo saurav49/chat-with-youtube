@@ -17,6 +17,7 @@ type ChatFormType = {
   isLoading: boolean;
   convID: string | undefined;
   videoId: string;
+  url: string;
 };
 
 const ChatForm = ({
@@ -27,6 +28,7 @@ const ChatForm = ({
   isLoading,
   convID,
   videoId,
+  url,
 }: ChatFormType) => {
   const mutateMessage = useMutation(api.messages.createMessage);
   function handleOnSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -75,7 +77,7 @@ const ChatForm = ({
     );
     (async function () {
       try {
-        const r = await askLlmInBackground(query, videoId);
+        const r = await askLlmInBackground(query, videoId, url);
         if (r && r?.ok) {
           mutateMessage({
             content: query,
@@ -110,6 +112,8 @@ const ChatForm = ({
         setIsLoading(false);
       } catch (e) {
         console.error(e);
+      } finally {
+        setIsLoading(false);
       }
     })();
   }

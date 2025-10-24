@@ -21,3 +21,32 @@ export function systemPrompt(relevantChunks: string, query: string) {
     User Question: ${query}
     `;
 }
+export function classifierSystemPrompt(query: string) {
+  return `You are an intent classifier. Given a user's query about a YouTube video, return a JSON object with fields:
+   - "intent": one of "FULL" or "RAG"
+   - "confidence": number 0.0-1.0
+
+   Return EXACTLY the JSON object and nothing else. Do NOT wrap it in Markdown code fences.
+
+   Examples:
+   Q: "Summarize the whole video and list the main takeaways."
+   A: {"intent":"FULL","reason":"User explicitly asks to summarize the whole video","confidence":0.99}
+
+   Q: "What timestamp does she mention the experimental setup?"
+   A: {"intent":"RAG","reason":"User asks for a specific timestamp/quote","confidence":0.98}
+
+   Q: "Give me a high-level summary and also find the parts where they mention 'climate change'."
+   A: {"intent":"HYBRID","reason":"User requests both global summary and targeted retrieval","confidence":0.95}
+
+   Now classify:
+   Q: "${query}"
+   `;
+}
+
+export function generateChunkText(text: string, chunkSize: number) {
+  const chunks = [];
+  for (let i = 0; i < text.length; i += chunkSize) {
+    chunks.push(text.slice(i, i + chunkSize));
+  }
+  return chunks;
+}

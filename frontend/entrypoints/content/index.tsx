@@ -3,6 +3,7 @@ import ReactDOM from "react-dom/client";
 import React from "react";
 import "./global.css";
 import { ConvexProvider, ConvexReactClient } from "convex/react";
+import { debounce } from "@/lib/helper";
 
 const convex = new ConvexReactClient(import.meta.env.VITE_CONVEX_URL as string);
 
@@ -31,14 +32,6 @@ function sendURLToBackground(url: string) {
     type: "CHATYT_URL_UPDATE",
     url,
   });
-}
-
-function debounce<T extends (...args: any[]) => void>(fn: T, ms: number) {
-  let t: number | undefined;
-  return (...args: Parameters<T>) => {
-    if (t) clearTimeout(t);
-    t = window.setTimeout(() => fn(...args), ms);
-  };
 }
 
 export default defineContentScript({

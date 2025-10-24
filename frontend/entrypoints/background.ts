@@ -30,12 +30,13 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
           error: "Missing API Key",
         });
 
-      const { query, videoId } = msg.payload;
+      const { query, videoId, url } = msg.payload;
       const r = await axios.post(
         `http://localhost:3000/api/v1/query`,
         {
           query,
           videoId,
+          url,
         },
         {
           headers: {

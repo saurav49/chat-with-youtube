@@ -103,7 +103,7 @@ const ChatBox = ({
               const assistantId = `assistant-temp-${Date.now()}`;
               const userId = `user-temp-${Date.now()}`;
               setChatHistory((prev) =>
-                prev
+                prev && Array.isArray(prev) && prev.length > 0
                   ? [
                       ...prev,
                       {
@@ -114,7 +114,7 @@ const ChatBox = ({
                         senderId: OWNER_ID,
                       },
                       {
-                        _id: `${assistantId}`,
+                        _id: assistantId,
                         role: roles.ASSISTANT,
                         content: "",
                         conversationId: convID,
@@ -138,20 +138,14 @@ const ChatBox = ({
                       },
                     ],
               );
-              mutateMessage({
-                content: query,
-                role: roles.USER,
-                conversationId: convID,
-                senderId: OWNER_ID,
-              });
               (async function () {
                 try {
-                  const r = await askLlmInBackground(query, videoId);
+                  const r = await askLlmInBackground(query, videoId, url);
                   if (r && r?.ok) {
                     setChatHistory((prev) =>
-                      prev
+                      prev && Array.isArray(prev) && prev.length > 0
                         ? prev.map((p) =>
-                            p._id === `${assistantId}`
+                            p._id === assistantId
                               ? { ...p, content: r.data.data }
                               : { ...p },
                           )
@@ -165,6 +159,12 @@ const ChatBox = ({
                             },
                           ],
                     );
+                    mutateMessage({
+                      content: query,
+                      role: roles.USER,
+                      conversationId: convID,
+                      senderId: OWNER_ID,
+                    });
                     mutateMessage({
                       content: r.data.data,
                       role: roles.ASSISTANT,
@@ -215,6 +215,7 @@ const ChatBox = ({
             isLoading={isLoading}
             convID={convID}
             videoId={videoId}
+            url={url}
           />
         )}
       </CardFooter>
